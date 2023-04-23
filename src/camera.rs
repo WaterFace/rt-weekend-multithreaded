@@ -1,5 +1,7 @@
 use glam::Vec3;
 
+use crate::ray::Ray;
+
 pub struct Camera {
     pub aspect_ratio: f32,
     pub viewport_height: f32,
@@ -25,5 +27,13 @@ impl Camera {
             - self.horizontal() / 2.0
             - self.vertical() / 2.0
             - Vec3::new(0.0, 0.0, self.focal_length)
+    }
+
+    pub fn get_ray(&self, u: f32, v: f32) -> Ray {
+        Ray {
+            origin: self.origin,
+            direction: self.lower_left_corner() + u * self.horizontal() + v * self.vertical()
+                - self.origin,
+        }
     }
 }
