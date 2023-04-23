@@ -1,4 +1,6 @@
-use std::ops::{Add, Mul};
+use std::ops::{Add, AddAssign, Div, Mul};
+
+use glam::Vec3;
 
 pub struct Color {
     r: f32,
@@ -7,7 +9,7 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn new(r: f32, g: f32, b: f32) -> Self {
+    pub fn rgb(r: f32, g: f32, b: f32) -> Self {
         Self { r, g, b }
     }
 
@@ -38,6 +40,36 @@ impl Add for Color {
             r: self.r.add(rhs.r),
             g: self.g.add(rhs.g),
             b: self.b.add(rhs.b),
+        }
+    }
+}
+
+impl AddAssign for Color {
+    fn add_assign(&mut self, rhs: Self) {
+        self.r.add_assign(rhs.r);
+        self.g.add_assign(rhs.g);
+        self.b.add_assign(rhs.b);
+    }
+}
+
+impl Add<Color> for Vec3 {
+    type Output = Color;
+    fn add(self, rhs: Color) -> Self::Output {
+        Color {
+            r: self.x.add(rhs.r),
+            g: self.y.add(rhs.g),
+            b: self.z.add(rhs.b),
+        }
+    }
+}
+
+impl Div<f32> for Color {
+    type Output = Color;
+    fn div(self, rhs: f32) -> Self::Output {
+        Color {
+            r: self.r.div(rhs),
+            g: self.g.div(rhs),
+            b: self.b.div(rhs),
         }
     }
 }
