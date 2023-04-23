@@ -1,17 +1,28 @@
-use glam::Vec3;
+use glam::{vec3, Vec3};
 use itertools::iproduct;
 use rayon::prelude::*;
-use rt_weekend_multithreaded::{camera::Camera, color::Color, ray::Ray};
+use rt_weekend_multithreaded::{
+    camera::Camera,
+    color::Color,
+    hit::{Hit, HittableList},
+    random::random,
+    ray::Ray,
+    sphere::Sphere,
+};
 use std::sync::mpsc;
 
 use chrono::Local;
 use image::{ImageBuffer, Rgb, RgbImage};
 
-fn ray_color(r: &Ray) -> Color {
+fn ray_color(r: &Ray, world: &HittableList) -> Color {
+    let hit = world.hit(r, 0.0, f32::INFINITY);
+    if let Some(rec) = hit {
+        return 0.5 * (rec.n + Color::rgb(1.0, 1.0, 1.0));
+    }
+
     let dir = r.direction.normalize_or_zero();
     let t = 0.5 * (dir.y + 1.0);
-
-    (1.0 - t) * Color::new(1.0, 1.0, 1.0) + t * Color::new(0.5, 0.7, 1.0)
+    (1.0 - t) * Color::rgb(1.0, 1.0, 1.0) + t * Color::rgb(0.5, 0.7, 1.0)
 }
 
 fn main() {
@@ -21,6 +32,17 @@ fn main() {
         focal_length: 1.0,
         origin: Vec3::ZERO,
     };
+    let samples_per_pixel = 100;
+
+    let mut world = HittableList::new();
+    world.add_sphere(Sphere {
+        center: vec3(0.0, 0.0, -1.),
+        radius: 0.5,
+    });
+    world.add_sphere(Sphere {
+        center: vec3(0.0, -100.5, -1.),
+        radius: 100.0,
+    });
 
     let image_width: u32 = 768;
     let image_height: u32 = (image_width as f32 / camera.aspect_ratio) as u32;
@@ -29,21 +51,19 @@ fn main() {
     iproduct!(0..image_width, 0..image_height)
         .par_bridge()
         .for_each_with(sender, |sender, (i, j)| {
-            let u = i as f32 / (image_width as f32 - 1.0);
-            let v = 1.0 - (j as f32 / (image_height as f32 - 1.0));
+            let mut pixel_color = Color::rgb(0.0, 0.0, 0.0);
+            for _ in 0..samples_per_pixel {
+                let u = (i as f32 + random()) / (image_width as f32 - 1.0);
+                let v = (j as f32 + random()) / (image_height as f32 - 1.0);
+                let v = 1.0 - v;
 
-            let r = Ray {
-                origin: camera.origin,
-                direction: camera.lower_left_corner()
-                    + u * camera.horizontal()
-                    + v * camera.vertical()
-                    - camera.origin,
-            };
+                let r = camera.get_ray(u, v);
 
-            let color = ray_color(&r);
+                pixel_color += ray_color(&r, &world) / samples_per_pixel as f32;
+            }
 
             sender
-                .send(((i, j), color.to_pixel()))
+                .send(((i, j), pixel_color.to_pixel()))
                 .expect("failed to send message");
         });
 
