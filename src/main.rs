@@ -5,7 +5,7 @@ use rt_weekend_multithreaded::{
     camera::Camera,
     color::Color,
     hit::{Hit, HittableList},
-    random::{random, random_in_unit_sphere},
+    random::{random, random_in_hemisphere},
     ray::Ray,
     sphere::Sphere,
 };
@@ -20,7 +20,7 @@ fn ray_color(r: &Ray, world: &HittableList, depth: i32) -> Color {
     }
     let hit = world.hit(r, 0.001, f32::INFINITY);
     if let Some(rec) = hit {
-        let target = rec.p + rec.n + random_in_unit_sphere();
+        let target = rec.p + random_in_hemisphere(rec.n);
         return 0.5
             * ray_color(
                 &Ray {
