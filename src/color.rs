@@ -20,6 +20,23 @@ impl Color {
 
         [r, g, b]
     }
+
+    pub fn to_pixel_color_correction(&self, samples_per_pixel: u32) -> [u8; 3] {
+        let r = self.r;
+        let g = self.g;
+        let b = self.b;
+
+        let scale = 1.0 / samples_per_pixel as f32;
+        let r = f32::sqrt(scale * r);
+        let g = f32::sqrt(scale * g);
+        let b = f32::sqrt(scale * b);
+
+        let r = (256.0 * r.clamp(0.0, 0.999)) as u8;
+        let g = (256.0 * g.clamp(0.0, 0.999)) as u8;
+        let b = (256.0 * b.clamp(0.0, 0.999)) as u8;
+
+        [r, g, b]
+    }
 }
 
 impl Mul<Color> for f32 {

@@ -5,7 +5,7 @@ use rt_weekend_multithreaded::{
     camera::Camera,
     color::Color,
     hit::{Hit, HittableList},
-    random::random,
+    random::{random, random_in_unit_sphere},
     ray::Ray,
     sphere::Sphere,
 };
@@ -14,10 +14,22 @@ use std::sync::mpsc;
 use chrono::Local;
 use image::{ImageBuffer, Rgb, RgbImage};
 
-fn ray_color(r: &Ray, world: &HittableList) -> Color {
-    let hit = world.hit(r, 0.0, f32::INFINITY);
+fn ray_color(r: &Ray, world: &HittableList, depth: i32) -> Color {
+    if depth <= 0 {
+        return Color::rgb(0.0, 0.0, 0.0);
+    }
+    let hit = world.hit(r, 0.001, f32::INFINITY);
     if let Some(rec) = hit {
-        return 0.5 * (rec.n + Color::rgb(1.0, 1.0, 1.0));
+        let target = rec.p + rec.n + random_in_unit_sphere();
+        return 0.5
+            * ray_color(
+                &Ray {
+                    origin: rec.p,
+                    direction: target - rec.p,
+                },
+                world,
+                depth - 1,
+            );
     }
 
     let dir = r.direction.normalize_or_zero();
@@ -33,6 +45,7 @@ fn main() {
         origin: Vec3::ZERO,
     };
     let samples_per_pixel = 100;
+    let max_depth = 50;
 
     let mut world = HittableList::new();
     world.add_sphere(Sphere {
@@ -59,11 +72,14 @@ fn main() {
 
                 let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(&r, &world) / samples_per_pixel as f32;
+                pixel_color += ray_color(&r, &world, max_depth);
             }
 
             sender
-                .send(((i, j), pixel_color.to_pixel()))
+                .send((
+                    (i, j),
+                    pixel_color.to_pixel_color_correction(samples_per_pixel),
+                ))
                 .expect("failed to send message");
         });
 
