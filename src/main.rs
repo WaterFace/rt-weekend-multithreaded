@@ -46,8 +46,8 @@ fn main() {
         focal_length: 1.0,
         origin: Vec3::ZERO,
     };
-    let samples_per_pixel = 100;
-    let max_depth = 50;
+    let samples_per_pixel = 500;
+    let max_depth = 200;
 
     let mut world = HittableList::new();
     world.add_sphere(Sphere {
