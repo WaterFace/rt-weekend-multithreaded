@@ -38,14 +38,24 @@ fn ray_color(r: &Ray, world: &HittableList, depth: i32) -> Color {
 fn main() {
     let start = Instant::now();
 
-    let camera = Camera {
-        viewport_height: 2.0,
-        aspect_ratio: 16.0 / 9.0,
-        focal_length: 1.0,
-        origin: Vec3::ZERO,
-    };
     let samples_per_pixel = 100;
     let max_depth = 50;
+
+    let pos = vec3(3.0, 3.0, 2.0);
+    let looking_at = vec3(0.0, 0.0, -1.0);
+    let up = Vec3::Y;
+    let fov = 20.0;
+    let aperture = 2.0;
+    let dist_to_focus = (pos - looking_at).length();
+    let camera = Camera::new(
+        pos,
+        looking_at,
+        up,
+        fov,
+        16.0 / 9.0,
+        aperture,
+        dist_to_focus,
+    );
 
     let mut world = HittableList::new();
     world.add_sphere(Sphere {
@@ -59,7 +69,7 @@ fn main() {
         center: vec3(0.0, 0.0, -1.0),
         radius: 0.5,
         material: Material::Lambertian {
-            albedo: Color::rgb(0.7, 0.3, 0.3),
+            albedo: Color::rgb(0.1, 0.2, 0.5),
         },
     });
     world.add_sphere(Sphere {
@@ -77,7 +87,7 @@ fn main() {
         radius: 0.5,
         material: Material::Metal {
             albedo: Color::rgb(0.8, 0.6, 0.2),
-            fuzz: 0.8,
+            fuzz: 0.0,
         },
     });
 
