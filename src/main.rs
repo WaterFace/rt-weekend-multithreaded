@@ -9,7 +9,7 @@ use rt_weekend_multithreaded::{
     ray::Ray,
     sphere::Sphere,
 };
-use std::sync::mpsc;
+use std::{sync::mpsc, time::Instant};
 
 use chrono::Local;
 use image::{ImageBuffer, Rgb, RgbImage};
@@ -38,6 +38,8 @@ fn ray_color(r: &Ray, world: &HittableList, depth: i32) -> Color {
 }
 
 fn main() {
+    let start = Instant::now();
+
     let camera = Camera {
         viewport_height: 2.0,
         aspect_ratio: 16.0 / 9.0,
@@ -99,6 +101,9 @@ fn main() {
             Err(_) => break,
         }
     }
+
+    let end = Instant::now();
+    println!("Took {} seconds", end.duration_since(start).as_secs_f32());
 
     let now = Local::now();
     let filename = format!("{}.png", now.format("%d-%m-%Y %H%M%S"));
