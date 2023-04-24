@@ -2,12 +2,14 @@ use glam::Vec3;
 
 use crate::{
     hit::{Hit, HitRecord},
+    material::Material,
     ray::Ray,
 };
 
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f32,
+    pub material: Material,
 }
 
 impl Hit for Sphere {
@@ -33,6 +35,12 @@ impl Hit for Sphere {
         let p = r.at(t);
         let outward_normal = (p - self.center) / self.radius;
 
-        Some(HitRecord::with_outward_normal(p, t, outward_normal, &r))
+        Some(HitRecord::with_outward_normal(
+            p,
+            t,
+            &self.material,
+            outward_normal,
+            &r,
+        ))
     }
 }

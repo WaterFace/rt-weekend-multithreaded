@@ -2,6 +2,7 @@ use std::ops::{Add, AddAssign, Div, Mul};
 
 use glam::Vec3;
 
+#[derive(Clone, Copy)]
 pub struct Color {
     r: f32,
     g: f32,
@@ -38,6 +39,16 @@ impl Color {
         [r, g, b]
     }
 }
+impl Mul for Color {
+    type Output = Color;
+    fn mul(self, rhs: Color) -> Self::Output {
+        Color {
+            r: self.r.mul(rhs.r),
+            g: self.g.mul(rhs.g),
+            b: self.b.mul(rhs.b),
+        }
+    }
+}
 
 impl Mul<Color> for f32 {
     type Output = Color;
@@ -46,6 +57,17 @@ impl Mul<Color> for f32 {
             r: self.mul(rhs.r),
             g: self.mul(rhs.g),
             b: self.mul(rhs.b),
+        }
+    }
+}
+
+impl Mul<Color> for Vec3 {
+    type Output = Color;
+    fn mul(self, rhs: Color) -> Self::Output {
+        Color {
+            r: self.x.mul(rhs.r),
+            g: self.y.mul(rhs.g),
+            b: self.z.mul(rhs.b),
         }
     }
 }

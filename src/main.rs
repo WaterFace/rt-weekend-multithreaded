@@ -5,7 +5,8 @@ use rt_weekend_multithreaded::{
     camera::Camera,
     color::Color,
     hit::{Hit, HittableList},
-    random::{random, random_in_hemisphere},
+    material::Material,
+    random::random,
     ray::Ray,
     sphere::Sphere,
 };
@@ -23,16 +24,10 @@ fn ray_color(r: &Ray, world: &HittableList, depth: i32) -> Color {
     }
     let hit = world.hit(r, 0.001, f32::INFINITY);
     if let Some(rec) = hit {
-        let target = rec.p + random_in_hemisphere(rec.n);
-        return 0.5
-            * ray_color(
-                &Ray {
-                    origin: rec.p,
-                    direction: target - rec.p,
-                },
-                world,
-                depth - 1,
-            );
+        if let Some((attenuation, scattered)) = rec.material.scatter(&r, &rec) {
+            return attenuation * ray_color(&scattered, world, depth - 1);
+        }
+        return Color::rgb(0.0, 0.0, 0.0);
     }
 
     let dir = r.direction.normalize_or_zero();
@@ -49,17 +44,39 @@ fn main() {
         focal_length: 1.0,
         origin: Vec3::ZERO,
     };
-    let samples_per_pixel = 500;
-    let max_depth = 200;
+    let samples_per_pixel = 100;
+    let max_depth = 50;
 
     let mut world = HittableList::new();
     world.add_sphere(Sphere {
-        center: vec3(0.0, 0.0, -1.),
-        radius: 0.5,
+        center: vec3(0.0, -100.5, -1.0),
+        radius: 100.0,
+        material: Material::Lambertian {
+            albedo: Color::rgb(0.8, 0.8, 0.0),
+        },
     });
     world.add_sphere(Sphere {
-        center: vec3(0.0, -100.5, -1.),
-        radius: 100.0,
+        center: vec3(0.0, 0.0, -1.0),
+        radius: 0.5,
+        material: Material::Lambertian {
+            albedo: Color::rgb(0.7, 0.3, 0.3),
+        },
+    });
+    world.add_sphere(Sphere {
+        center: vec3(-1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: Material::Metal {
+            albedo: Color::rgb(0.8, 0.8, 0.8),
+            fuzz: 0.3,
+        },
+    });
+    world.add_sphere(Sphere {
+        center: vec3(1.0, 0.0, -1.0),
+        radius: 0.5,
+        material: Material::Metal {
+            albedo: Color::rgb(0.8, 0.6, 0.2),
+            fuzz: 0.8,
+        },
     });
 
     let image_width: u32 = 768;

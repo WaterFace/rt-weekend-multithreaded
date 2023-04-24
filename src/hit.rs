@@ -1,16 +1,23 @@
 use glam::Vec3;
 
-use crate::{ray::Ray, sphere::Sphere};
+use crate::{material::Material, ray::Ray, sphere::Sphere};
 
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub p: Vec3,
     pub n: Vec3,
     pub t: f32,
+    pub material: &'a Material,
     pub front_face: bool,
 }
 
-impl HitRecord {
-    pub fn with_outward_normal(p: Vec3, t: f32, outward_normal: Vec3, r: &Ray) -> Self {
+impl<'a> HitRecord<'a> {
+    pub fn with_outward_normal(
+        p: Vec3,
+        t: f32,
+        material: &'a Material,
+        outward_normal: Vec3,
+        r: &Ray,
+    ) -> Self {
         let front_face = Vec3::dot(r.direction, outward_normal) < 0.0;
         let n = if front_face {
             outward_normal
@@ -21,6 +28,7 @@ impl HitRecord {
             p,
             n,
             t,
+            material,
             front_face,
         }
     }
