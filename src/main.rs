@@ -9,7 +9,10 @@ use rt_weekend_multithreaded::{
     ray::Ray,
     sphere::Sphere,
 };
-use std::{sync::mpsc, time::Instant};
+use std::{
+    sync::{atomic::AtomicU32, mpsc, Arc},
+    time::Instant,
+};
 
 use chrono::Local;
 use image::{ImageBuffer, Rgb, RgbImage};
@@ -62,42 +65,45 @@ fn main() {
     let image_width: u32 = 768;
     let image_height: u32 = (image_width as f32 / camera.aspect_ratio) as u32;
 
+    let total_pixels = image_width * image_height;
+    let report_every = total_pixels / 100;
+    let pixels_completed = Arc::new(AtomicU32::new(0));
+
     let (sender, reciever) = mpsc::channel();
     iproduct!(0..image_width, 0..image_height)
         .par_bridge()
-        .for_each_with(sender, |sender, (i, j)| {
-            let mut pixel_color = Color::rgb(0.0, 0.0, 0.0);
-            for _ in 0..samples_per_pixel {
-                let u = (i as f32 + random()) / (image_width as f32 - 1.0);
-                let v = (j as f32 + random()) / (image_height as f32 - 1.0);
-                let v = 1.0 - v;
+        .for_each_with(
+            (sender, pixels_completed.clone()),
+            |(sender, counter), (i, j)| {
+                let mut pixel_color = Color::rgb(0.0, 0.0, 0.0);
+                for _ in 0..samples_per_pixel {
+                    let u = (i as f32 + random()) / (image_width as f32 - 1.0);
+                    let v = (j as f32 + random()) / (image_height as f32 - 1.0);
+                    let v = 1.0 - v;
 
-                let r = camera.get_ray(u, v);
+                    let r = camera.get_ray(u, v);
 
-                pixel_color += ray_color(&r, &world, max_depth);
-            }
+                    pixel_color += ray_color(&r, &world, max_depth);
+                }
 
-            sender
-                .send((
-                    (i, j),
-                    pixel_color.to_pixel_color_correction(samples_per_pixel),
-                ))
-                .expect("failed to send message");
-        });
+                sender
+                    .send((
+                        (i, j),
+                        pixel_color.to_pixel_color_correction(samples_per_pixel),
+                    ))
+                    .expect("failed to send message");
+                let i = counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                if i % report_every == 0 {
+                    println!("{}% complete", (i * 100) / total_pixels);
+                }
+            },
+        );
 
-    let total_pixels = image_width * image_height;
-    let report_every = total_pixels / 100;
-    let mut pixels_completed = 0;
+    println!("Writing image...");
     let mut img: RgbImage = ImageBuffer::new(image_width, image_height);
     loop {
         match reciever.recv() {
-            Ok(((x, y), pixel)) => {
-                pixels_completed += 1;
-                if pixels_completed % report_every == 0 {
-                    println!("{}% complete", (pixels_completed * 100) / total_pixels);
-                }
-                img.put_pixel(x, y, Rgb::from(pixel))
-            }
+            Ok(((x, y), pixel)) => img.put_pixel(x, y, Rgb::from(pixel)),
             Err(_) => break,
         }
     }
