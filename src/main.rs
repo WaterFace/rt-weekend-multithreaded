@@ -102,6 +102,5 @@ fn main() {
 
     let now = Local::now();
     let filename = format!("{}.png", now.format("%d-%m-%Y %H%M%S"));
-    println!("{filename}");
     img.save(filename).expect("Failed to save image");
 }
