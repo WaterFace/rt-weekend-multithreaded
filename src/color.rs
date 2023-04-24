@@ -39,6 +39,17 @@ impl Color {
         [r, g, b]
     }
 }
+
+impl From<Vec3> for Color {
+    fn from(value: Vec3) -> Self {
+        Color {
+            r: value.x,
+            g: value.y,
+            b: value.z,
+        }
+    }
+}
+
 impl Mul for Color {
     type Output = Color;
     fn mul(self, rhs: Color) -> Self::Output {

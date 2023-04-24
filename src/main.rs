@@ -1,14 +1,11 @@
-use glam::{vec3, Vec3};
 use itertools::iproduct;
 use rayon::prelude::*;
 use rt_weekend_multithreaded::{
-    camera::Camera,
     color::Color,
     hit::{Hit, HittableList},
-    material::Material,
     random::random,
     ray::Ray,
-    sphere::Sphere,
+    scene::random_scene,
 };
 use std::{
     sync::{atomic::AtomicU32, mpsc, Arc},
@@ -38,61 +35,13 @@ fn ray_color(r: &Ray, world: &HittableList, depth: i32) -> Color {
 fn main() {
     let start = Instant::now();
 
-    let samples_per_pixel = 100;
+    let samples_per_pixel = 500;
     let max_depth = 50;
 
-    let pos = vec3(3.0, 3.0, 2.0);
-    let looking_at = vec3(0.0, 0.0, -1.0);
-    let up = Vec3::Y;
-    let fov = 20.0;
-    let aperture = 2.0;
-    let dist_to_focus = (pos - looking_at).length();
-    let camera = Camera::new(
-        pos,
-        looking_at,
-        up,
-        fov,
-        16.0 / 9.0,
-        aperture,
-        dist_to_focus,
-    );
+    let scene = random_scene();
 
-    let mut world = HittableList::new();
-    world.add_sphere(Sphere {
-        center: vec3(0.0, -100.5, -1.0),
-        radius: 100.0,
-        material: Material::Lambertian {
-            albedo: Color::rgb(0.8, 0.8, 0.0),
-        },
-    });
-    world.add_sphere(Sphere {
-        center: vec3(0.0, 0.0, -1.0),
-        radius: 0.5,
-        material: Material::Lambertian {
-            albedo: Color::rgb(0.1, 0.2, 0.5),
-        },
-    });
-    world.add_sphere(Sphere {
-        center: vec3(-1.0, 0.0, -1.0),
-        radius: 0.5,
-        material: Material::Dielectric { ior: 1.5 },
-    });
-    world.add_sphere(Sphere {
-        center: vec3(-1.0, 0.0, -1.0),
-        radius: -0.4,
-        material: Material::Dielectric { ior: 1.5 },
-    });
-    world.add_sphere(Sphere {
-        center: vec3(1.0, 0.0, -1.0),
-        radius: 0.5,
-        material: Material::Metal {
-            albedo: Color::rgb(0.8, 0.6, 0.2),
-            fuzz: 0.0,
-        },
-    });
-
-    let image_width: u32 = 768;
-    let image_height: u32 = (image_width as f32 / camera.aspect_ratio) as u32;
+    let image_width: u32 = 1200;
+    let image_height: u32 = (image_width as f32 / scene.camera.aspect_ratio) as u32;
 
     let total_pixels = image_width * image_height;
     let report_every = total_pixels / 100;
@@ -110,9 +59,9 @@ fn main() {
                     let v = (j as f32 + random()) / (image_height as f32 - 1.0);
                     let v = 1.0 - v;
 
-                    let r = camera.get_ray(u, v);
+                    let r = scene.camera.get_ray(u, v);
 
-                    pixel_color += ray_color(&r, &world, max_depth);
+                    pixel_color += ray_color(&r, &scene.world, max_depth);
                 }
 
                 sender
